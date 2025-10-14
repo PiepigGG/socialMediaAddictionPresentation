@@ -467,6 +467,93 @@
     }
     .attention-ack .message p{ margin:.4em 0; line-height:1.6; }
 
+    /* === Slide 11: What is being done? (text left, image right) === */
+    .slide.help-actions.active{
+      display:grid;
+      grid-template-rows:auto 1fr;         /* title + content */
+      gap:clamp(12px,2vmin,20px);
+    }
+
+    .slide.help-actions .title{
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+
+    .help-actions .content{
+      display:grid;
+      grid-template-columns:1.2fr 1fr;     /* text wider than image */
+      gap:clamp(18px,3vmin,40px);
+      align-items:start;
+    }
+
+    .help-actions .left ul{ margin:0 0 0 1.2em; }
+    .help-actions .left li{ margin:.4em 0; line-height:1.55; }
+    .help-actions .left strong{ font-weight:700; }
+
+    .help-actions .desc{
+      margin:.35em 0 1em;
+      color:var(--muted);
+    }
+
+    .help-actions .figure{
+      background:#0e0e0e;
+      border:1px solid #232323;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      display:grid; place-items:center;
+      overflow:hidden;
+      padding:10px;
+    }
+
+    .help-actions .figure img{
+      width:100%; height:auto; object-fit:contain; display:block;
+      background:#fff; border-radius:8px;
+    }
+
+    /* Stack on small screens */
+    @media (max-width:1000px){
+      .help-actions .content{ grid-template-columns:1fr; }
+    }
+
+    /* === Slide 12: What we're doing (left narrative bullets + right advice list) === */
+    .slide.plan-actions.active{
+      display:grid;
+      grid-template-rows:auto 1fr;          /* title + content */
+      gap:clamp(12px,2vmin,20px);
+    }
+
+    .slide.plan-actions .title{
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+
+    .plan-actions .content{
+      display:grid;
+      grid-template-columns:1.2fr 0.8fr;    /* wider narrative column */
+      gap:clamp(18px,3vmin,40px);
+      align-items:start;
+    }
+
+    /* Left: longer paragraph bullets */
+    .plan-actions .left ul{ margin:0 0 0 1.2em; }
+    .plan-actions .left li{
+      margin:1.2em 0;                        /* generous spacing like screenshot */
+      line-height:1.65;
+    }
+
+    /* Right: concise advice list with a small heading */
+    .plan-actions .right h3{
+      margin:.1em 0 .6em;
+      font-size:clamp(22px,3vmin,30px);
+    }
+    .plan-actions .right ul{ margin:0 0 0 1.2em; }
+    .plan-actions .right li{ margin:.35em 0; line-height:1.5; }
+
+    /* Stack on small screens */
+    @media (max-width: 900px){
+      .plan-actions .content{ grid-template-columns:1fr; }
+    }
+
   </style>
 </head>
 <body>
@@ -713,9 +800,82 @@
       </div>
     </section>
 
-    <section class="slide" data-title="Slide 11"><h1>Slide 11</h1><p>Placeholder content for Slide 11.</p></section>
-    <section class="slide" data-title="Slide 12"><h1>Slide 12</h1><p>Placeholder content for Slide 12.</p></section>
-    <section class="slide" data-title="Slide 13"><h1>Slide 13</h1><p>Placeholder content for Slide 13.</p></section>
+    <section class="slide help-actions" data-title="Slide 11">
+      <h1 class="title">What is being done about social media addiction?</h1>
+
+      <div class="content">
+        <!-- LEFT: resources -->
+        <div class="left">
+          <ul>
+            <li>
+              <strong>Media Addicts Anonymous</strong>
+              <div class="desc">
+                A peer support group focused on problematic social media use. Offers online
+                meetings and a step-by-step approach for people who feel their habits are hard
+                to change and want community while rebuilding healthier routines.
+              </div>
+            </li>
+
+            <li>
+              <strong>National Rehab Hotline: <a href="tel:8662103013">866-210-3013</a></strong>
+              <div class="desc">
+                24/7 free line for questions and referrals related to social media addiction,
+                mental health, and other addictions. They’ll help you talk through next steps and
+                connect you with local support if you want it.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- RIGHT: image / logo -->
+        <div class="figure">
+          <!-- Replace with your actual image path -->
+          <img src="images/maa-logo.png" alt="Media Addicts Anonymous logo">
+        </div>
+      </div>
+    </section>
+
+    <section class="slide plan-actions" data-title="Slide 12">
+      <h1 class="title">What we’re doing about social media addiction?</h1>
+
+      <div class="content">
+        <!-- Left: narrative bullets -->
+        <div class="left">
+          <ul>
+            <li>
+              <strong>Proposal:</strong> Introduce a club or support group that teaches and
+              encourages healthier technology habits.
+            </li>
+
+            <li>
+              <strong>Programming:</strong> The club/support group will host events and meetings
+              to raise awareness and reach out to those struggling with addiction. Events can also
+              raise money to support students in the community who don’t have funds to see health
+              advisors and counselors.
+            </li>
+
+            <li>
+              <strong>Campus support:</strong> Along with the new club, create a dedicated campus
+              counseling phone line for social media addiction (in addition to existing resources).
+            </li>
+          </ul>
+        </div>
+
+        <!-- Right: advice list -->
+        <div class="right">
+          <h3>Discussions and advice for those with social media addiction:</h3>
+          <ul>
+            <li>Set times/spaces to be tech-free</li>
+            <li>Detox periods</li>
+            <li>Find alternative activities</li>
+            <li>More in-person communication</li>
+            <li>Use technology to help (Focus, limits)</li>
+            <li>Seek professional help</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
 
     <section class="slide attention-ack" data-title="Slide 14">
       <h1 class="title">End scene</h1>
