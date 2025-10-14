@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Social Media</title>
+  <style>
+    :root { --bg:#0b0b0b; --fg:#f3f3f3; --muted:#b7b7b7; --accent:#63b3ed; --card:#121212; --shadow:0 10px 30px rgba(0,0,0,.5); --radius:16px; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";overflow:hidden}
+
+    /* HUD + progress */
+    #hud{position:fixed;top:12px;left:12px;z-index:40;background:rgba(0,0,0,.55);padding:8px 12px;border-radius:12px;font-weight:600;letter-spacing:.2px;box-shadow:var(--shadow)}
+    #progress{position:fixed;top:0;left:0;height:4px;background:var(--accent);width:0%;z-index:45}
+
+    /* Slides deck */
+    #deck{position:absolute;inset:0;z-index:1;display:grid;place-items:center;padding:6vmin}
+    .slide{width:min(1200px,95vw);height:min(700px,85vh);background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:clamp(16px,4vmin,48px);display:none;overflow:hidden;position:relative}
+    .slide.active{display:block}
+
+    /* Typography */
+    h1{font-size:clamp(32px,6vmin,64px);margin:0 0 .6em;line-height:1.05}
+    h2{font-size:clamp(24px,4.5vmin,44px);margin:.2em 0 .4em}
+    p,li{font-size:clamp(16px,2.2vmin,22px);color:var(--muted)}
+    ul{margin:.6em 0 0 1.2em}
+    code{background:#1a1a1a;padding:.1em .4em;border-radius:6px}
+
+    /* Controls */
+    #controls{position:fixed;bottom:16px;left:0;right:0;z-index:30;display:flex;justify-content:center;gap:10px;pointer-events:none}
+    .toolbar{pointer-events:auto;background:rgba(0,0,0,.55);border:1px solid #222;border-radius:12px;padding:8px;display:flex;gap:8px;align-items:center;box-shadow:var(--shadow)}
+    button{appearance:none;border:1px solid #2a2a2a;background:#151515;color:var(--fg);border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer}
+    button:hover{background:#1b1b1b}
+    .sep{width:1px;height:24px;background:#2a2a2a;margin:0 4px}
+
+    /* Video dock */
+    #videoDock{position:fixed;right:20px;bottom:20px;z-index:50;width:min(420px,38vw);aspect-ratio:16/9;border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:#000;display:grid;place-items:center}
+    #videoDock.large{width:min(900px,80vw)}
+    #videoDock.hidden{display:none}
+    #videoDock.tl{top:20px;left:20px;right:auto;bottom:auto}
+    #videoDock.tr{top:20px;right:20px;left:auto;bottom:auto}
+    #videoDock.bl{bottom:20px;left:20px;right:auto;top:auto}
+    #videoDock.br{bottom:20px;right:20px;left:auto;top:auto}
+    #yt{width:100%;height:100%;display:block}
+
+    /* Portrait (vertical video) mode */
+    #videoDock.portrait{aspect-ratio:9/16;width:min(150px,12vw)}
+    #videoDock.portrait.large{width:min(600px,40vw)}
+    #yt{position:relative}
+    #videoDock.portrait iframe{position:absolute;height:100%;width:300%;left:-100%;top:0}
+
+    /* Helpers */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,3vmin,40px);align-items:start}
+    .card{background:#161616;border:1px solid #232323;border-radius:12px;padding:clamp(12px,2vmin,20px)}
+    .muted{color:var(--muted)}
+    .accent{color:var(--accent)}
+
+    /* Center inner content and control scale */
+    .slide .content { max-width:1100px; margin:0 auto; }
+
+    /* Main two-column split for overview slide */
+    .slide .content .two-col-main {
+      display:grid; grid-template-columns:1.2fr 0.8fr; gap:clamp(16px,3vmin,40px); align-items:start;
+    }
+    .slide .content .two-col-cards {
+      display:grid; grid-template-columns:1fr 1fr; gap:clamp(12px,2.5vmin,24px);
+    }
+    @media (max-width:900px){
+      .slide .content .two-col-main{grid-template-columns:1fr}
+      .slide .content .two-col-cards{grid-template-columns:1fr}
+    }
+
+    /* Half-and-half layout (overview) */
+    .slide .content{
+      height:100%; max-width:1100px; margin:0 auto; display:grid;
+      grid-template-rows:1fr 1fr; gap:clamp(12px,2vmin,20px);
+    }
+    .slide .content .top{display:grid; align-content:center;}
+    .slide .content .bottom{display:grid; grid-template-columns:1fr 1fr; gap:clamp(12px,2.5vmin,24px); align-content:center;}
+    @media (max-width:900px){
+      .slide .content{grid-template-rows:auto auto}
+      .slide .content .bottom{grid-template-columns:1fr}
+    }
+
+    /* ===== Bigger text ===== */
+    .slide h1{font-size:clamp(40px,7vmin,80px)}
+    .slide h2{font-size:clamp(30px,5.5vmin,56px)}
+    .slide p,.slide li{font-size:clamp(20px,3vmin,28px);line-height:1.5}
+    .slide .card h3{font-size:clamp(22px,3.5vmin,32px)}
+    .slide .card li{font-size:clamp(18px,2.6vmin,26px)}
+
+    /* Title slide split: only grid when active (fixes Slide 2 overlap) */
+    .slide.title-split.active{
+      display:grid;                   /* visible only while active */
+      grid-template-columns:1.1fr 0.9fr;
+      align-items:center;
+      gap:clamp(16px,4vmin,40px);
+    }
+    .slide.title-split .left{padding-right:clamp(8px,2vmin,24px)}
+    .slide.title-split .right{width:100%;height:100%;display:grid;place-items:center}
+    .slide.title-split .right img{
+      max-width:100%; max-height:100%; object-fit:contain; border-radius:12px; box-shadow:var(--shadow);
+    }
+    @media (max-width:900px){
+      .slide.title-split.active{grid-template-columns:1fr; grid-template-rows:auto min(52vh,600px)}
+    }
+
+    /* === Slide 3: title on top, big image below === */
+    .slide.image-hero.active {
+      display: grid;                 /* only when this slide is active */
+      grid-template-rows: auto 1fr;  /* title row + image row */
+      gap: clamp(12px, 2vmin, 20px);
+    }
+
+    .slide.image-hero .title {
+      text-align: center;
+      margin: 0;                     /* tight top spacing */
+      font-size: clamp(36px, 6.5vmin, 72px);
+    }
+
+    .slide.image-hero .media {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;           /* center the image */
+    }
+
+    .slide.image-hero .media img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;           /* no cropping; keep aspect */
+      border-radius: 12px;
+      background: #fff;              /* charts usually white */
+      box-shadow: var(--shadow);
+      border: 1px solid #222;
+    }
+
+    /* === Slide 4: Title + two bullet columns === */
+    .slide.twocol-bullets.active{
+      display:grid;                   /* only when this slide is active */
+      grid-template-rows:auto 1fr;    /* title row + content row */
+      gap:clamp(12px,2vmin,20px);
+    }
+
+    .slide.twocol-bullets .title{
+      text-align:center;
+      margin:0;
+      font-size:clamp(36px,6.5vmin,72px);
+    }
+
+    .slide.twocol-bullets .cols{
+      display:grid;
+      grid-template-columns:1.2fr 1fr;  /* wider left column */
+      gap:clamp(18px,3vmin,36px);
+      align-items:start;
+    }
+
+    .slide.twocol-bullets .sub{
+      margin:0 0 .4em;
+      font-size:clamp(22px,3.2vmin,30px);
+    }
+
+    .slide.twocol-bullets ul{ margin:0 0 0 1.2em; }
+    .slide.twocol-bullets li{ margin:.35em 0; }
+
+    /* Slightly larger bullets for the left "definition" list */
+    .slide.twocol-bullets .lead li{
+      font-size:clamp(20px,3.2vmin,30px);
+      line-height:1.6;
+    }
+
+    /* Stack on small screens */
+    @media (max-width:900px){
+      .slide.twocol-bullets .cols{ grid-template-columns:1fr; }
+    }
+
+    /* === Slide 6: three cards with image areas === */
+    .slide.trio-cards.active{
+      display:grid;                    /* only when this slide is active */
+      grid-template-rows:auto 1fr;     /* title + cards */
+      gap:clamp(14px,2.4vmin,24px);
+    }
+
+    .slide.trio-cards .title{
+      text-align:center;
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+
+    .trio-grid{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:clamp(14px,2.2vmin,22px);
+      align-items:stretch;
+    }
+
+    .trio-card{
+      /* extends your .card look */
+      background:#161616; border:1px solid #232323; border-radius:12px;
+      padding:clamp(12px,2vmin,18px);
+      display:grid;
+      grid-template-rows:minmax(140px, 42%) auto; /* image area + caption */
+      gap:clamp(10px,1.6vmin,14px);
+    }
+
+    .trio-card .thumb{
+      width:100%;
+      border-radius:10px;
+      overflow:hidden;
+      background:#0e0e0e;              /* placeholder bg */
+      display:grid; place-items:center; /* centers placeholder if no image */
+      border:1px solid #232323;
+      box-shadow:var(--shadow);
+      aspect-ratio:16/9;                /* nice chart/photo ratio */
+    }
+
+    .trio-card .thumb img{
+      width:100%; height:100%; object-fit:cover; display:block;
+    }
+
+    .trio-card h3{
+      text-align:center;
+      margin:0;
+      font-size:clamp(20px,3.2vmin,28px);
+    }
+
+    /* Stack on small screens */
+    @media (max-width: 1000px){
+      .trio-grid{ grid-template-columns:1fr; }
+    }
+
+    /* === Slide 7: Effect – Increasing Mental Illness (text left, evidence image right) === */
+    .slide.effect-mental.active{
+      display:grid;
+      grid-template-rows:auto 1fr;             /* title row + content row */
+      gap:clamp(12px, 2vmin, 20px);
+    }
+
+    .effect-mental .title{
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+
+    .effect-mental .content{
+      display:grid;
+      grid-template-columns: 1.1fr 1fr;        /* text a bit wider than image */
+      gap:clamp(18px, 3vmin, 40px);
+      align-items:start;
+    }
+
+    .effect-mental .left p{ margin:.3em 0 1em; }
+    .effect-mental .left ul{ margin:.2em 0 0 1.2em; }
+    .effect-mental .left li{ margin:.25em 0; }
+
+    /* right evidence block */
+    .effect-mental .evidence{
+      display:grid;
+      grid-template-rows: 1fr auto;            /* image area + caption */
+      gap:clamp(10px, 1.6vmin, 14px);
+    }
+
+    .effect-mental .evidence .figure{
+      background:#0e0e0e;
+      border:1px solid #232323;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      display:grid; place-items:center;
+      overflow:hidden;
+      padding:8px;
+    }
+
+    .effect-mental .evidence .figure img{
+      width:100%; height:auto; object-fit:contain; display:block;
+      background:#fff; border-radius:8px;
+    }
+
+    .effect-mental .caption{
+      text-align:center;
+      font-style:italic;
+      color:var(--muted);
+      font-size:clamp(16px, 2.3vmin, 20px);
+    }
+    .effect-mental .caption b{ color:var(--fg); font-style:normal; }
+
+    /* stack on smaller screens */
+    @media (max-width: 1000px){
+      .effect-mental .content{ grid-template-columns:1fr; }
+    }
+
+    /* === Slide 8: Title + two even bullet columns === */
+    .slide.twocol-bullets-even.active{
+      display:grid;
+      grid-template-rows:auto 1fr;      /* title + content */
+      gap:clamp(12px,2vmin,20px);
+    }
+
+    .slide.twocol-bullets-even .title{
+      text-align:left;                  /* matches your screenshot */
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+
+    .slide.twocol-bullets-even .cols{
+      display:grid;
+      grid-template-columns:1fr 1fr;    /* even columns */
+      gap:clamp(20px,3vmin,44px);
+      align-items:start;
+    }
+
+    .slide.twocol-bullets-even .sub{
+      margin:0 0 .5em;
+      font-size:clamp(22px,3vmin,30px);
+    }
+
+    .slide.twocol-bullets-even ul{ margin:0 0 0 1.2em; }
+    .slide.twocol-bullets-even li{
+      margin:.4em 0;
+      line-height:1.6;
+    }
+
+    /* Stack on small screens */
+    @media (max-width:900px){
+      .slide.twocol-bullets-even .cols{ grid-template-columns:1fr; }
+    }
+
+    /* === Slide 9: Decreasing Academic Engagement (text left, large image right) === */
+    .slide.effect-academic.active{
+      display:grid;
+      grid-template-rows:auto 1fr;             /* title + content */
+      gap:clamp(12px,2vmin,20px);
+    }
+
+    .effect-academic .title{
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+
+    .effect-academic .content{
+      display:grid;
+      grid-template-columns: 0.9fr 1.1fr;      /* slimmer text, larger figure */
+      gap:clamp(18px,3vmin,40px);
+      align-items:start;
+    }
+
+    .effect-academic .left p{ margin:.3em 0 1em; }
+    .effect-academic .left ul{ margin:.2em 0 0 1.2em; }
+    .effect-academic .left li{ margin:.25em 0; line-height:1.55; }
+
+    /* Right figure */
+    .effect-academic .figure{
+      background:#0e0e0e;
+      border:1px solid #232323;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      padding:8px;                    /* thin frame like screenshot */
+      display:grid; place-items:center;
+      height:100%;
+    }
+
+    .effect-academic .figure img{
+      width:100%; height:auto; object-fit:contain; display:block;
+      background:#fff; border-radius:8px;
+    }
+
+    /* Stack on small screens */
+    @media (max-width: 1000px){
+      .effect-academic .content{ grid-template-columns:1fr; }
+    }
+
+    /* === Generic 2-card text layout (title + two cards) === */
+    .slide.duo-cards.active{
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:clamp(12px,2vmin,20px);
+    }
+    .slide.duo-cards .title{
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+    .duo-wrap{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:clamp(16px,2.6vmin,28px);
+    }
+    .duo-card{
+      background:#161616; border:1px solid #232323; border-radius:12px;
+      padding:clamp(14px,2.2vmin,20px);
+    }
+    .duo-card h3{ margin:.2em 0 .6em; font-size:clamp(22px,3.2vmin,30px); }
+    .duo-card ul{ margin:0 0 0 1.2em; }
+    .duo-card li{ margin:.35em 0; line-height:1.55; }
+
+    /* One-column on small screens */
+    @media (max-width: 900px){
+      .duo-wrap{ grid-template-columns:1fr; }
+    }
+
+    /* === Slide 15: Works Cited (two-column refs) === */
+    .slide.refs.active{
+      display:grid;
+      grid-template-rows:auto 1fr;
+      gap:clamp(12px,2vmin,20px);
+    }
+
+    .slide.refs .title{
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+
+    .refs-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:clamp(18px,3vmin,40px);
+      align-items:start;
+    }
+
+    .ref-list{
+      display:grid;
+      gap:clamp(10px,1.8vmin,16px);
+    }
+
+    .ref{
+      background:#151515;
+      border:1px solid #232323;
+      border-radius:10px;
+      padding:clamp(10px,1.8vmin,14px);
+    }
+
+    .ref a{
+      color:var(--accent);
+      text-decoration:underline;
+      word-break:break-word;     /* long URLs won’t overflow */
+    }
+
+    .ref .src{
+      color:var(--muted);
+      font-size:clamp(14px,2vmin,18px);
+      line-height:1.45;
+      margin:0;
+    }
+
+    /* Stack to one column on small screens */
+    @media (max-width:900px){
+      .refs-grid{ grid-template-columns:1fr; }
+    }
+
+    /* Slide 14: attention/meme acknowledgement */
+    .slide.attention-ack.active{
+      display:grid;
+      grid-template-rows:auto 1fr;     /* title + message card */
+      gap:clamp(12px,2vmin,20px);
+    }
+    .slide.attention-ack .title{
+      margin:0;
+      font-size:clamp(34px,6.2vmin,70px);
+    }
+    .attention-ack .message{
+      max-width: 900px;
+      margin: 0 auto;
+      background:#161616;
+      border:1px solid #232323;
+      border-radius:12px;
+      padding:clamp(16px,2.4vmin,24px);
+      text-align:center;
+      box-shadow: var(--shadow);
+    }
+    .attention-ack .message p{ margin:.4em 0; line-height:1.6; }
+
+  </style>
+</head>
+<body>
+  <!-- HUD + progress -->
+  <div id="hud"></div>
+  <div id="progress"></div>
+
+  <main id="deck">
+    <section class="slide active title-split" data-title="Introduction and Title">
+      <div class="left">
+        <h1>Social Media Addiction</h1>
+        <p>By: Nicholas Hohl, Brittney Barnswell, Gillian, Adam Uhde</p>
+      </div>
+      <div class="right">
+        <img src="kidcryaddict.jpg" alt="Phone screen with social media app open" />
+      </div>
+    </section>
+
+    <section class="slide" data-title="Brittney">
+      <div class="content">
+        <div class="top">
+          <h1>Overview of Social Media</h1>
+          <ul>
+            <li>Social media are forms of digital communication.</li>
+            <li>Early platforms (e.g., MySpace and LiveJournal) were designed for people to connect with friends and family.</li>
+            <li>Social media use grew rapidly in the 2000s and early 2010s.</li>
+            <li>Initially used for socializing among college-age users.</li>
+            <li>Different platform purposes.</li>
+            <li>Social media became commercialized.</li>
+          </ul>
+        </div>
+        <div class="bottom">
+          <div class="card">
+            <h3>Pros</h3>
+            <ul>
+              <li>Connectivity &amp; community-building</li>
+              <li>Information dissemination</li>
+              <li>Educational resource</li>
+              <li>Entertainment</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Cons</h3>
+            <ul>
+              <li>Addiction</li>
+              <li>Dis/misinformation</li>
+              <li>Cyberbullying / harassment</li>
+              <li>Privacy concerns</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide image-hero" data-title="Brittney">
+      <h1 class="title">Which social media platforms are most common?</h1>
+      <div class="media">
+        <img src="Slide3graph.png" alt="Line chart of U.S. adults' social media platform usage over time">
+      </div>
+    </section>
+
+
+    <section class="slide twocol-bullets" data-title="Slide 4">
+  <h1 class="title">Social Media Addiction</h1>
+
+  <div class="cols">
+    <div class="left">
+      <ul class="lead">
+        <li>Social media addiction is a behavioral addiction.</li>
+        <li>Social media addiction is characterized by excessive and compulsive usage that affects daily functioning and overall well-being.</li>
+      </ul>
+    </div>
+
+    <div class="right">
+      <h3 class="sub">Signs of social media addiction:</h3>
+      <ul>
+        <li>Mood modification</li>
+        <li>Salience</li>
+        <li>Tolerance</li>
+        <li>Withdrawal symptoms</li>
+        <li>Conflict</li>
+        <li>Relapse</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+    <section class="slide image-hero" data-title="Slide 5">
+      <h1 class="title">Social Media Addiction Statistics By Age</h1>
+      <div class="media">
+        <img src="Slide5graph.png" alt="Bar chart showing social media addiction rates by age group">
+      </div>
+    </section>
+
+    <section class="slide trio-cards" data-title="Slide 6">
+      <h1 class="title">Effects of Social Media</h1>
+
+      <div class="trio-grid">
+        <div class="trio-card">
+          <div class="thumb">
+            <!-- optional image -->
+            <!-- <img src="images/effect-mental.jpg" alt="Illustration of mental health impact"> -->
+          </div>
+          <h3>Increasing Mental Illness</h3>
+        </div>
+
+        <div class="trio-card">
+          <div class="thumb">
+            <!-- <img src="images/effect-addiction.jpg" alt="Addictive behavior concept"> -->
+          </div>
+          <h3>Increasing Addictive Behavior</h3>
+        </div>
+
+        <div class="trio-card">
+          <div class="thumb">
+            <!-- <img src="images/effect-academics.jpg" alt="Decreasing academic engagement"> -->
+          </div>
+          <h3>Decreasing Academic Engagement</h3>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide effect-mental" data-title="Slide 7">
+      <h1 class="title">Effect – Increasing Mental Illness</h1>
+
+      <div class="content">
+        <!-- LEFT: bullets & summary -->
+        <div class="left">
+          <p>Social media addiction can lead to:</p>
+          <ul>
+            <li>Increased anxiety</li>
+            <li>Increased depression</li>
+            <li>Low self-esteem</li>
+            <li>Emotional dysregulation</li>
+            <li>High stress levels</li>
+            <li>Decreased self control</li>
+          </ul>
+
+          <p style="margin-top:1em">
+            A review of multiple studies regarding social media addiction and college students
+            found that acts of psychological distress such as symptoms of anxiety and depression
+            are shown to be both a cause and effect of heavy social media use.
+          </p>
+
+          <ul>
+            <li>All 22 studies reviewed support a link between social media addiction and an increase in mental illnesses.</li>
+          </ul>
+        </div>
+
+        <!-- RIGHT: evidence image + caption -->
+        <div class="evidence">
+          <div class="figure">
+            <!-- Replace with your table/figure image -->
+            <img src="Slide7graph.png"
+                alt="Summary table of studies on social media addiction and mental health outcomes">
+          </div>
+          <div class="caption">
+            A Scoping Review of the Use and Determinants of Social Media Among College Students —
+            <b>Summary of key determinants</b>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide twocol-bullets-even" data-title="Slide 8">
+      <h1 class="title">Effect - Increasing Addictive Behaviors</h1>
+
+      <div class="cols">
+        <div>
+          <h3 class="sub">Key Facts:</h3>
+          <ul>
+            <li>210 million people around the globe are addicted to social media.</li>
+            <li>Social media addiction is more prevalent in younger generations.</li>
+            <li>82% of Gen Z adults have admitted to having a heavy reliance on social media.</li>
+            <li>Over 60% of college students in the U.S. report being addicted to social media.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="sub">Causes of Social Media Addiction:</h3>
+          <ul>
+            <li>Mental illness (anxiety, depression, etc.)</li>
+            <li>Low self-esteem</li>
+            <li>Desire for social acceptance among peers</li>
+            <li>Comparison</li>
+            <li>Peer pressure</li>
+            <li>Exposure to unrealistic online presence</li>
+            <li>Addictive algorithms</li>
+            <li>Endless scrolling features</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide effect-academic" data-title="Slide 9">
+      <h1 class="title">Effect - Decreasing Academic Engagement</h1>
+
+      <div class="content">
+        <div class="left">
+          <p>
+            Social media addiction is not proven to directly link to decreasing academic
+            engagement in college students, however research shows significant indirect and
+            inverse effects on academic engagement overall.
+          </p>
+          <ul>
+            <li>Addiction to social media increases symptoms of depression and anxiety.</li>
+            <li>When mental-illness symptoms increase, academic engagement decreases.</li>
+            <li>Academic engagement positively correlates with self-esteem but has an inverse
+                relationship with depression.</li>
+          </ul>
+        </div>
+
+        <div class="figure">
+          <!-- replace with your table image -->
+          <img src="images/academic-engagement-table.png"
+              alt="Table showing correlations between social media addiction, mental health, and academic engagement">
+        </div>
+      </div>
+    </section>
+
+    <section class="slide duo-cards" data-title="Slide 10">
+      <h1 class="title">Our Stance on Social Media Addiction</h1>
+
+      <div class="duo-wrap">
+        <div class="duo-card">
+          <h3>Position</h3>
+          <ul>
+            <li>Social media is not inherently harmful, but many features are designed to maximize time on app.</li>
+            <li>Heavy, unplanned use relates to anxiety, sleep problems, and lower well-being for some users.</li>
+            <li>A minority show addiction-like patterns such as loss of control, withdrawal, and conflict.</li>
+            <li>Risks are higher for adolescents and students during stressful periods.</li>
+          </ul>
+        </div>
+
+        <div class="duo-card">
+          <h3>What We Support</h3>
+          <ul>
+            <li>Design transparency and default time-use tools that are easy to set and hard to ignore.</li>
+            <li>Digital literacy that teaches reward loops, algorithms, and mindful use.</li>
+            <li>Environment changes: notification hygiene, bedtime protection, study-first device setup.</li>
+            <li>Access to help when use causes distress or impairment.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" data-title="Slide 11"><h1>Slide 11</h1><p>Placeholder content for Slide 11.</p></section>
+    <section class="slide" data-title="Slide 12"><h1>Slide 12</h1><p>Placeholder content for Slide 12.</p></section>
+    <section class="slide" data-title="Slide 13"><h1>Slide 13</h1><p>Placeholder content for Slide 13.</p></section>
+
+    <section class="slide attention-ack" data-title="Slide 14">
+      <h1 class="title">End scene</h1>
+
+      <div class="message">
+        <p><strong>Why the Subway Surfers clip?</strong></p>
+        <p>
+          A reminder that apps train short
+          attention loops. If a tiny runner helped you stay tuned, that’s exactly our point
+          about design shaping attention.
+        </p>
+      </div>
+    </section>
+
+    <section class="slide refs" data-title="Slide 15">
+      <h1 class="title">Works Cited</h1>
+
+      <div class="refs-grid">
+        <!-- Column A -->
+        <div class="ref-list">
+          <div class="ref">
+            <p class="src">
+              Social media addiction relationship with academic engagement in university students:
+              The mediator role of self-esteem, depression, and anxiety. 
+              <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10825341/">https://pmc.ncbi.nlm.nih.gov/articles/PMC10825341/</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              The Influence of Social Media on Addictive Behaviors in College Students.
+              <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5404812/">https://pmc.ncbi.nlm.nih.gov/articles/PMC5404812/</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              Solutions to the problem.
+              <a href="https://shs.gmu.edu/healthpromotion/internet-addiction/">https://shs.gmu.edu/healthpromotion/internet-addiction/</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              Demographics of Social Media Users and Adoption in the United States.
+              <a href="https://www.pewresearch.org/internet/fact-sheet/social-media/">(Pew Research) link</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              Social Media Addiction Statistics 2025 (Facts &amp; Data).
+              <a href="https://www.demandsage.com/social-media-addiction-statistics/">https://www.demandsage.com/social-media-addiction-statistics/</a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Column B -->
+        <div class="ref-list">
+          <div class="ref">
+            <p class="src">
+              Investigating social media addiction and impact of social media addiction on academic success among university students.
+              <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11261762/">https://pmc.ncbi.nlm.nih.gov/articles/PMC11261762/</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              Tips to Overcome Social Media Addiction.
+              <a href="https://www.talktoangel.com/blog/tips-to-overcome-social-media-addiction">https://www.talktoangel.com/blog/tips-to-overcome-social-media-addiction</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              Social Media Addiction (overview).
+              <a href="https://www.addictioncenter.com/behavioral-addictions/social-media-addiction/">https://www.addictioncenter.com/behavioral-addictions/social-media-addiction/</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              Understanding Social Media Addiction: A Deep Dive.
+              <a href="https://pmc.ncbi.nlm.nih.gov/">(PMC article)</a>
+            </p>
+          </div>
+
+          <div class="ref">
+            <p class="src">
+              Fatima, A., Akhter, M. S., Kanekar, A., Roy, S., Mitra, R., Imade, B., &amp; Sharma, M. (2023).
+              A Scoping Review of the Use and Determinants of Social Media Among College Students.
+              <em>Healthcare, 11(17)</em>, 2234. 
+              <a href="https://doi.org/10.3390/healthcare11172234">https://doi.org/10.3390/healthcare11172234</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Persistent YouTube video -->
+  <div id="videoDock" class="br portrait">
+    <div id="yt" title="YouTube player"></div>
+  </div>
+
+  <!-- Controls toolbar -->
+  <div id="controls">
+    <div class="toolbar">
+      <button id="prevBtn" title="Previous (←/PgUp)">◀ Prev</button>
+      <button id="nextBtn" title="Next (→/PgDn)">Next ▶</button>
+      <div class="sep"></div>
+      <button id="toggleSizeBtn" title="Resize video (S)">Resize ▢</button>
+      <button id="toggleCornerBtn" title="Move corner (C)">Corner ↗</button>
+      <button id="toggleHideBtn" title="Show/Hide video (H)">Hide ▣</button>
+      <button id="muteBtn" title="Mute/Unmute (M)">Mute 🔇</button>
+      <div class="sep"></div>
+      <button id="fsBtn" title="Fullscreen (F)">Fullscreen ⤢</button>
+    </div>
+  </div>
+
+  <script>
+    // ======== CONFIG =========
+    const CONFIG = { youtubeId: 'eRXE8Aebp7s', startMuted: true };
+    // ========================
+
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const hud = document.getElementById('hud');
+    const progress = document.getElementById('progress');
+
+    const videoDock = document.getElementById('videoDock');
+    const ytDiv = document.getElementById('yt');
+
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const toggleSizeBtn = document.getElementById('toggleSizeBtn');
+    const toggleCornerBtn = document.getElementById('toggleCornerBtn');
+    const toggleHideBtn = document.getElementById('toggleHideBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const fsBtn = document.getElementById('fsBtn');
+
+    let idx = 0;
+    let dwellStart = performance.now();
+    const dwellTimes = new Array(slides.length).fill(0);
+
+    function fmt(t){ const s=Math.floor(t/1000),m=Math.floor(s/60),r=s%60; return `${m}:${r.toString().padStart(2,'0')}`; }
+    function updateHud(){
+      const total=slides.length, elapsed=performance.now()-dwellStart;
+      const label = slides[idx]?.dataset?.title || `Slide ${idx+1}`;
+      if (hud) hud.textContent = `${label} — ${idx+1}/${total} · ${fmt(dwellTimes[idx]+elapsed)}`;
+      if (progress) progress.style.width = `${((idx+1)/total)*100}%`;
+    }
+    function showSlide(i){
+      i=Math.max(0,Math.min(slides.length-1,i)); if(i===idx) return;
+      dwellTimes[idx]+=performance.now()-dwellStart; dwellStart=performance.now();
+      slides[idx].classList.remove('active'); idx=i; slides[idx].classList.add('active');
+      location.hash = `#/${idx+1}`; updateHud();
+    }
+    function next(){ showSlide(idx+1); }
+    function prev(){ showSlide(idx-1); }
+
+    document.addEventListener('keydown', e=>{
+      if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') next();
+      if(e.key==='ArrowLeft'||e.key==='PageUp') prev();
+      if(e.key.toLowerCase()==='f') toggleFullscreen();
+      if(e.key.toLowerCase()==='s') toggleSize();
+      if(e.key.toLowerCase()==='c') cycleCorner();
+      if(e.key.toLowerCase()==='h') toggleHide();
+      if(e.key.toLowerCase()==='m') toggleMute();
+    });
+
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+    function toggleFullscreen(){ if(!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.(); }
+    fsBtn.addEventListener('click', toggleFullscreen);
+    function toggleSize(){ videoDock.classList.toggle('large'); }
+    toggleSizeBtn.addEventListener('click', toggleSize);
+
+    const corners=['br','tr','tl','bl'];
+    function cycleCorner(){ const has=corners.find(c=>videoDock.classList.contains(c))||'br';
+      const next=corners[(corners.indexOf(has)+1)%corners.length]; corners.forEach(c=>videoDock.classList.remove(c)); videoDock.classList.add(next); }
+    toggleCornerBtn.addEventListener('click', cycleCorner);
+    function toggleHide(){ videoDock.classList.toggle('hidden'); }
+    toggleHideBtn.addEventListener('click', toggleHide);
+
+    // YouTube setup
+    let ytPlayer=null;
+    function setupVideo(){
+      ytDiv.classList.add('active');
+      const tag=document.createElement('script'); tag.src='https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
+      window.onYouTubeIframeAPIReady=()=>{
+        ytPlayer=new YT.Player('yt',{
+          videoId: CONFIG.youtubeId,
+          playerVars:{ rel:0, modestbranding:1, playsinline:1, autoplay:1 },
+          events:{
+            onReady: ()=>{
+              try{
+                ytPlayer.mute();
+                const iframe=ytPlayer.getIframe?.();
+                if(iframe){
+                  const prev=iframe.getAttribute('allow')||'';
+                  if(!/autoplay/.test(prev)) iframe.setAttribute('allow', prev ? prev+'; autoplay' : 'autoplay');
+                }
+                ytPlayer.playVideo();
+              }catch(e){ console.warn('YouTube autoplay failed:', e); }
+              updateMuteLabel();
+            }
+          }
+        });
+      };
+    }
+
+    function updateMuteLabel(){ const isMuted = ytPlayer ? ytPlayer.isMuted() : true; muteBtn.textContent = isMuted ? 'Unmute 🔊' : 'Mute 🔇'; }
+    function toggleMute(){ if(!ytPlayer) return; if(ytPlayer.isMuted()) ytPlayer.unMute(); else ytPlayer.mute(); updateMuteLabel(); }
+    muteBtn.addEventListener('click', toggleMute);
+
+    function fromHash(){
+      const m=/#\/(\d+)/.exec(location.hash), n=m?Math.max(1,Math.min(slides.length,parseInt(m[1],10))):1;
+      slides[idx].classList.remove('active'); idx=n-1; slides[idx].classList.add('active'); dwellStart=performance.now(); updateHud();
+    }
+    window.addEventListener('hashchange', fromHash);
+
+    function raf(){ updateHud(); requestAnimationFrame(raf); }
+
+    // Init
+    setupVideo();
+    if(location.hash) fromHash(); else updateHud();
+    requestAnimationFrame(raf);
+  </script>
+</body>
+</html>
